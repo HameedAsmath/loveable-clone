@@ -1,0 +1,36 @@
+{
+  "name": "hameed-lovable-clone",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev": "tsx src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/HameedAsmath/hameed-lovable-clone.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/HameedAsmath/hameed-lovable-clone/issues"
+  },
+  "homepage": "https://github.com/HameedAsmath/hameed-lovable-clone#readme",
+  "dependencies": {
+    "@boundaryml/baml": "^0.220.0",
+    "cors": "^2.8.6",
+    "dotenv": "^17.3.1",
+    "express": "^5.2.1",
+    "tsx": "^4.21.0"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/node": "^25.5.0",
+    "typescript": "^5.9.3"
+  }
+}
