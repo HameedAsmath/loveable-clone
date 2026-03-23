@@ -91,7 +91,6 @@ export function templateToLiveFiles(
   return result;
 }
 
-// Helper: creates all parent directories for a path if they don't exist
 export async function ensureDir(container: WebContainer, filePath: string) {
   const parts = filePath.split("/").filter(Boolean); // "/src/components/TodoItem.jsx" → ["src", "components", "TodoItem.jsx"]
   parts.pop(); // remove the filename, we only want dirs → ["src", "components"]

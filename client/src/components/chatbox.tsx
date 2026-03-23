@@ -33,7 +33,6 @@ const ChatBox = ({
         {isStreaming ? "Generating..." : "Send"}
       </Button>
 
-      {/* NEW: show plan as it streams in */}
       {plan && (
         <div className="text-xs text-muted-foreground border rounded p-2">
           <p className="font-semibold mb-1">Plan</p>
@@ -41,8 +40,7 @@ const ChatBox = ({
         </div>
       )}
 
-      {/* NEW: show files being created one by one */}
-      {liveFiles.length > 0 && (
+      {/* {liveFiles.length > 0 && (
         <div className="flex flex-col gap-1">
           <p className="text-xs font-semibold">Files</p>
           {liveFiles.map((file, index) => {
@@ -56,7 +54,7 @@ const ChatBox = ({
             );
           })}
         </div>
-      )}
+      )} */}
     </div>
   );
 };

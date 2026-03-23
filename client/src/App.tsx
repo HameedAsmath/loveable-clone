@@ -26,6 +26,9 @@ function App() {
   const [prompt, setPrompt] = useState("");
   const [activeFile, setActiveFile] = useState<IActiveFile | null>(null);
   const [template, setTemplate] = useState<Record<string, any> | null>(null);
+  const [history, setHistory] = useState<
+    { role: "user" | "assistant"; feedback: string }[]
+  >([]);
 
   const [plan, setPlan] = useState<string>("");
   const [liveFiles, setLiveFiles] = useState<ILiveFile[]>([]);
@@ -82,7 +85,7 @@ function App() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          history: [],
+          history,
           feedback: userPrompt,
           code_files: files,
           package_json,
@@ -105,20 +108,16 @@ function App() {
           if (!event.startsWith("data:")) continue;
           const data = JSON.parse(event.replace("data:", "").trim());
 
-          // stream plan text
           if (data.plan) {
             setPlan(data.plan);
           }
 
-          // upsert file into liveFiles AND write to webcontainer simultaneously
           if (data.file) {
             const { path, content } = data.file;
 
             await ensureDir(containerRef.current!, path);
-            // write to webcontainer for live preview
             await containerRef.current!.fs.writeFile(path, content);
 
-            // update liveFiles state for UI (upsert by path)
             setLiveFiles((prev) => {
               const exists = prev.find((f) => f.path === path);
               if (!exists) return [...prev, { path, content }];
@@ -128,6 +127,11 @@ function App() {
 
           if (data.done) {
             setIsStreaming(false);
+            setHistory((prev) => [
+              ...prev,
+              { role: "user", feedback: userPrompt },
+              { role: "assistant", feedback: plan },
+            ]);
           }
         }
       }
@@ -138,12 +142,20 @@ function App() {
   };
 
   const handleSelectFile = (file: IActiveFile) => {
-    // find latest content from liveFiles if it exists
     const live = liveFiles.find((f) => f.path.endsWith(file.content)); // fallback to passed file
     setActiveFile(
       live ? { language: file.language, content: live.content } : file,
     );
   };
+
+    useEffect(() => {
+    if (liveFiles.length > 0 && !activeFile) {
+      const appFile = liveFiles.find((f) => f.path.endsWith("/src/App.tsx"));
+      if (appFile) {
+        setActiveFile({ language: "typescript", content: appFile.content });
+      }
+    }
+  }, [liveFiles]);
 
   useEffect(() => {
     const initializeWebContainer = async () => {
