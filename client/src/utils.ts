@@ -5,6 +5,7 @@ import JSZip from "jszip";
 
 type FileTreeNode = {
   name: string;
+  path: string;
   type: "file" | "folder";
   language?: string;
   content?: string;
@@ -35,7 +36,7 @@ export function liveFilesToFileTree(files: ILiveFile[]): FileTreeNode[] {
 
   for (const { path, content } of files) {
     const parts = path.replace(/^\//, "").split("/"); // "/src/App.jsx" → ["src", "App.jsx"]
-    insertIntoTree(root, parts, content);
+    insertIntoTree(root, parts, content, "");
   }
 
   return Object.values(root);
@@ -44,14 +45,17 @@ export function liveFilesToFileTree(files: ILiveFile[]): FileTreeNode[] {
 function insertIntoTree(
   node: Record<string, FileTreeNode>,
   parts: string[],
-  content: string
+  content: string,
+  parentPath: string
 ): void {
   const [head, ...rest] = parts;
+  const currentPath = `${parentPath}/${head}`;
 
   if (rest.length === 0) {
     // It's a file
     node[head] = {
       name: head,
+      path: currentPath,
       type: "file",
       language: getLanguage(head.split(".").pop() || ""),
       content,
@@ -59,14 +63,14 @@ function insertIntoTree(
   } else {
     // It's a folder — create if missing
     if (!node[head]) {
-      node[head] = { name: head, type: "folder", children: [] };
+      node[head] = { name: head, path: currentPath, type: "folder", children: [] };
     }
 
     // Convert children array → map for easy lookup, recurse, convert back
     const childMap = Object.fromEntries(
       (node[head].children || []).map((c) => [c.name, c])
     );
-    insertIntoTree(childMap, rest, content);
+    insertIntoTree(childMap, rest, content, currentPath);
     node[head].children = Object.values(childMap);
   }
 }

@@ -1,7 +1,7 @@
-import express from 'express';
-import {b} from "../baml_client/async_client.js";
+import express from "express";
+import { b } from "../baml_client/async_client.js";
 import cors from "cors";
-import "dotenv/config"
+import "dotenv/config";
 
 const app = express();
 app.use(cors());
@@ -30,30 +30,38 @@ const PORT = process.env.PORT || 3000;
 
 // main()
 
-
 app.post("/edit-code", async (req, res) => {
-    const {history, feedback, code_files, package_json} = req.body;
-    res.setHeader("Content-Type", "text/event-stream")
-    res.setHeader("Cache-Control", "no-cache")
-    res.setHeader("Connection", "keep-alive")
-    const stream = b.stream.EditCode(history, feedback, code_files, package_json)
-    for await (const partial of stream) {
-        if(partial.plan) {
-            res.write(`data: ${JSON.stringify({plan: partial.plan.value, state: partial.plan.state})}\n\n`);
-        }
-        if(partial.files) {
-            for(const file of partial.files) {
-                res.write(`data: ${JSON.stringify({file: {path: file.path, content: file.content}})}\n\n`);
-            }
-        }
+  const { history, feedback, code_files, package_json } = req.body;
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
+  const stream = b.stream.EditCode(history, feedback, code_files, package_json);
+  console.log("Stream started");
+  for await (const partial of stream) {
+    if (partial.plan) {
+      res.write(
+        `data: ${JSON.stringify({ plan: partial.plan.value, state: partial.plan.state })}\n\n`,
+      );
+      console.log("Plan:", partial.plan.value);
+      console.log("State:", partial.plan.state);
     }
-    res.write(`data: ${JSON.stringify({done: true})}\n\n`);
-    res.end();
-})
+    if (partial.files) {
+      for (const file of partial.files) {
+        res.write(
+          `data: ${JSON.stringify({ file: { path: file.path, content: file.content } })}\n\n`,
+        );
+        console.log("File:", file.path);
+        console.log("File Content:", file.content);
+      }
+    }
+  }
+  res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
+  res.end();
+});
 
 app.get("/repo-zip", async (req, res) => {
   const response = await fetch(
-    "https://codeload.github.com/beam-cloud/react-vite-shadcn-ui/zip/refs/heads/main"
+    "https://codeload.github.com/beam-cloud/react-vite-shadcn-ui/zip/refs/heads/main",
   );
 
   const buffer = await response.arrayBuffer();
@@ -62,7 +70,6 @@ app.get("/repo-zip", async (req, res) => {
   res.send(Buffer.from(buffer));
 });
 
-
 app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
+  console.log(`Server is running on port ${PORT}`);
 });

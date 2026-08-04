@@ -12,8 +12,10 @@ import {
   templateToLiveFiles,
 } from "./utils";
 import { WebContainer } from "@webcontainer/api";
+import { Code2, Eye, Sparkles } from "lucide-react";
 
 interface IActiveFile {
+  path: string;
   language: string;
   content: string;
 }
@@ -32,6 +34,7 @@ function App() {
 
   const [plan, setPlan] = useState<string>("");
   const [liveFiles, setLiveFiles] = useState<ILiveFile[]>([]);
+  const [touchedFiles, setTouchedFiles] = useState<ILiveFile[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
   const [url, setUrl] = useState<string | null>(null);
 
@@ -123,6 +126,12 @@ function App() {
               if (!exists) return [...prev, { path, content }];
               return prev.map((f) => (f.path === path ? { ...f, content } : f));
             });
+
+            setTouchedFiles((prev) => {
+              const exists = prev.find((f) => f.path === path);
+              if (!exists) return [...prev, { path, content }];
+              return prev.map((f) => (f.path === path ? { ...f, content } : f));
+            });
           }
 
           if (data.done) {
@@ -142,17 +151,23 @@ function App() {
   };
 
   const handleSelectFile = (file: IActiveFile) => {
-    const live = liveFiles.find((f) => f.path.endsWith(file.content)); // fallback to passed file
-    setActiveFile(
-      live ? { language: file.language, content: live.content } : file,
-    );
+    const live = liveFiles.find((f) => f.path === file.path);
+    setActiveFile({
+      path: file.path,
+      language: file.language,
+      content: live ? live.content : file.content,
+    });
   };
 
     useEffect(() => {
     if (liveFiles.length > 0 && !activeFile) {
       const appFile = liveFiles.find((f) => f.path.endsWith("/src/App.tsx"));
       if (appFile) {
-        setActiveFile({ language: "typescript", content: appFile.content });
+        setActiveFile({
+          path: appFile.path,
+          language: "typescript",
+          content: appFile.content,
+        });
       }
     }
   }, [liveFiles]);
@@ -217,48 +232,81 @@ function App() {
   }, []);
 
   return (
-    <div className="app flex h-screen w-screen gap-8 p-8">
-      <div className="chatbox w-[25%]">
-        <ChatBox
-          prompt={prompt}
-          setPrompt={setPrompt}
-          onSubmit={handleStream}
-          plan={plan}
-          liveFiles={liveFiles}
-          isStreaming={isStreaming}
-        />
-      </div>
-      <div className="right-pane w-[75%]">
-        <Tabs defaultValue="code" className="w-full">
-          <TabsList className="grid w-[20%] grid-cols-2">
-            <TabsTrigger value="code">Code</TabsTrigger>
-            <TabsTrigger value="preview">Preview</TabsTrigger>
-          </TabsList>
+    <div className="flex h-screen w-screen flex-col bg-linear-to-br from-background via-background to-primary/3">
+      <header className="flex items-center justify-between border-b border-border px-6 py-3">
+        <div className="flex items-center gap-2.5">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-linear-to-br from-primary to-primary/50 text-primary-foreground shadow-sm">
+            <Sparkles className="h-4 w-4" />
+          </div>
+          <span className="text-sm font-semibold">AI Builder</span>
+        </div>
+        <div className="flex items-center gap-1.5 rounded-full border border-border bg-muted/40 px-3 py-1 text-[11px] text-muted-foreground">
+          <span
+            className={`h-1.5 w-1.5 rounded-full ${
+              url ? "bg-emerald-500" : "animate-pulse bg-amber-500"
+            }`}
+          />
+          {url ? "Preview live" : "Booting sandbox"}
+        </div>
+      </header>
 
-          <TabsContent value="code">
-            <div className="flex h-[600px]">
-              <div className="w-60 border-r p-2">
-                <FileExplorer
-                  files={liveFilesToFileTree(liveFiles)}
-                  onSelect={handleSelectFile}
-                />
-              </div>
+      <div className="flex min-h-0 flex-1 gap-6 p-6">
+        <div className="w-[25%] min-w-70">
+          <ChatBox
+            prompt={prompt}
+            setPrompt={setPrompt}
+            onSubmit={handleStream}
+            plan={plan}
+            liveFiles={touchedFiles}
+            isStreaming={isStreaming}
+          />
+        </div>
+        <div className="min-w-0 flex-1">
+          <Tabs defaultValue="code" className="h-full w-full gap-3">
+            <TabsList variant="line" className="border-b border-border">
+              <TabsTrigger value="code" className="gap-1.5">
+                <Code2 className="h-3.5 w-3.5" />
+                Code
+              </TabsTrigger>
+              <TabsTrigger value="preview" className="gap-1.5">
+                <Eye className="h-3.5 w-3.5" />
+                Preview
+              </TabsTrigger>
+            </TabsList>
 
-              <div className="flex-1">
-                {activeFile && (
-                  <CodeEditor
-                    code={activeFile.content}
-                    language={activeFile.language}
+            <TabsContent value="code">
+              <div className="flex h-150 overflow-hidden rounded-xl border border-border bg-card/40">
+                <div className="w-60 shrink-0 overflow-y-auto border-r border-border p-2">
+                  <FileExplorer
+                    files={liveFilesToFileTree(liveFiles)}
+                    onSelect={handleSelectFile}
+                    selectedPath={activeFile ? (activeFile as IActiveFile).path : null}
                   />
-                )}
-              </div>
-            </div>
-          </TabsContent>
+                </div>
 
-          <TabsContent value="preview">
-            <Preview url={url} />
-          </TabsContent>
-        </Tabs>
+                <div className="flex min-w-0 flex-1 flex-col">
+                  {activeFile && (
+                    <div className="flex items-center gap-1.5 border-b border-border bg-muted/30 px-3 py-1.5 font-mono text-[11px] text-muted-foreground">
+                      {activeFile.path}
+                    </div>
+                  )}
+                  <div className="flex-1">
+                    {activeFile && (
+                      <CodeEditor
+                        code={activeFile.content}
+                        language={activeFile.language}
+                      />
+                    )}
+                  </div>
+                </div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="preview">
+              <Preview url={url} />
+            </TabsContent>
+          </Tabs>
+        </div>
       </div>
     </div>
   );
