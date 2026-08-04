@@ -24,6 +24,8 @@ export interface ILiveFile {
   content: string;
 }
 
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+
 function App() {
   const [prompt, setPrompt] = useState("");
   const [activeFile, setActiveFile] = useState<IActiveFile | null>(null);
@@ -84,7 +86,7 @@ function App() {
         "utf-8",
       );
 
-      const response = await fetch("http://localhost:3000/edit-code", {
+      const response = await fetch(`${API_URL}/edit-code`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -180,7 +182,7 @@ function App() {
         return;
       }
       containerRef.current = instance;
-      const res = await fetch("http://localhost:3000/repo-zip");
+      const res = await fetch(`${API_URL}/repo-zip`);
       const blob = await res.blob();
       console.log("Fetched repo zip:", blob);
       const files: Record<string, any> =
