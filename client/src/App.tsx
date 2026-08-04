@@ -39,6 +39,7 @@ function App() {
   const [touchedFiles, setTouchedFiles] = useState<ILiveFile[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
   const [url, setUrl] = useState<string | null>(null);
+  const [bootError, setBootError] = useState<string | null>(null);
 
   const containerRef = useRef<WebContainer | null>(null);
 
@@ -176,9 +177,19 @@ function App() {
 
   useEffect(() => {
     const initializeWebContainer = async () => {
-      const instance = await WebContainer.boot();
+      let instance;
+      try {
+        instance = await WebContainer.boot();
+      } catch (error) {
+        console.error("Failed to boot WebContainer:", error);
+        setBootError(
+          "Sandbox failed to start. This usually means the page isn't cross-origin isolated (missing COOP/COEP headers).",
+        );
+        return;
+      }
       if (!instance) {
         console.error("Failed to boot WebContainer");
+        setBootError("Sandbox failed to start.");
         return;
       }
       containerRef.current = instance;
@@ -242,13 +253,24 @@ function App() {
           </div>
           <span className="text-sm font-semibold">AI Builder</span>
         </div>
-        <div className="flex items-center gap-1.5 rounded-full border border-border bg-muted/40 px-3 py-1 text-[11px] text-muted-foreground">
+        <div
+          className={`flex items-center gap-1.5 rounded-full border px-3 py-1 text-[11px] ${
+            bootError
+              ? "border-destructive/30 bg-destructive/10 text-destructive"
+              : "border-border bg-muted/40 text-muted-foreground"
+          }`}
+          title={bootError ?? undefined}
+        >
           <span
             className={`h-1.5 w-1.5 rounded-full ${
-              url ? "bg-emerald-500" : "animate-pulse bg-amber-500"
+              bootError
+                ? "bg-destructive"
+                : url
+                  ? "bg-emerald-500"
+                  : "animate-pulse bg-amber-500"
             }`}
           />
-          {url ? "Preview live" : "Booting sandbox"}
+          {bootError ? "Sandbox failed to start" : url ? "Preview live" : "Booting sandbox"}
         </div>
       </header>
 
