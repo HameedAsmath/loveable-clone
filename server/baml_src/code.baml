@@ -18,7 +18,7 @@ class Message {
 client<llm> OpenAIClient {
   provider openai
   options {
-    model o4-mini
+    model "gpt-5-mini"
     api_key env.OPENAI_API_KEY
   }
 }
