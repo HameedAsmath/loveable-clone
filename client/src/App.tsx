@@ -31,7 +31,7 @@ function App() {
   const [activeFile, setActiveFile] = useState<IActiveFile | null>(null);
   const [template, setTemplate] = useState<Record<string, any> | null>(null);
   const [history, setHistory] = useState<
-    { role: "user" | "assistant"; feedback: string }[]
+    { role: "user" | "assistant"; content: string }[]
   >([]);
 
   const [plan, setPlan] = useState<string>("");
@@ -102,19 +102,28 @@ function App() {
 
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
+      // Events can be split across network chunks, so keep the incomplete tail until the rest arrives
+      let buffer = "";
+      let latestPlan = "";
 
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
 
-        const chunk = decoder.decode(value);
-        const events = chunk.split("\n\n");
+        buffer += decoder.decode(value, { stream: true });
+        const events = buffer.split("\n\n");
+        buffer = events.pop() ?? "";
 
         for (const event of events) {
           if (!event.startsWith("data:")) continue;
           const data = JSON.parse(event.replace("data:", "").trim());
 
+          if (data.error) {
+            console.error("Server error:", data.error);
+          }
+
           if (data.plan) {
+            latestPlan = data.plan;
             setPlan(data.plan);
           }
 
@@ -138,15 +147,15 @@ function App() {
           }
 
           if (data.done) {
-            setIsStreaming(false);
             setHistory((prev) => [
               ...prev,
-              { role: "user", feedback: userPrompt },
-              { role: "assistant", feedback: plan },
+              { role: "user", content: userPrompt },
+              { role: "assistant", content: latestPlan },
             ]);
           }
         }
       }
+      setIsStreaming(false);
     } catch (error) {
       console.error("Error during streaming:", error);
       setIsStreaming(false);

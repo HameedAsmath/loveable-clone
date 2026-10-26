@@ -37,23 +37,28 @@ app.post("/edit-code", async (req, res) => {
   res.setHeader("Connection", "keep-alive");
   const stream = b.stream.EditCode(history, feedback, code_files, package_json);
   console.log("Stream started");
-  for await (const partial of stream) {
-    if (partial.plan) {
-      res.write(
-        `data: ${JSON.stringify({ plan: partial.plan.value, state: partial.plan.state })}\n\n`,
-      );
-      console.log("Plan:", partial.plan.value);
-      console.log("State:", partial.plan.state);
-    }
-    if (partial.files) {
-      for (const file of partial.files) {
+  // Files are only streamed once complete (@@stream.done), so send each one just once
+  let sentFiles = 0;
+  try {
+    for await (const partial of stream) {
+      if (partial.plan) {
         res.write(
-          `data: ${JSON.stringify({ file: { path: file.path, content: file.content } })}\n\n`,
+          `data: ${JSON.stringify({ plan: partial.plan.value, state: partial.plan.state })}\n\n`,
         );
-        console.log("File:", file.path);
-        console.log("File Content:", file.content);
+      }
+      if (partial.files) {
+        for (const file of partial.files.slice(sentFiles)) {
+          res.write(
+            `data: ${JSON.stringify({ file: { path: file.path, content: file.content } })}\n\n`,
+          );
+          console.log("File:", file.path);
+        }
+        sentFiles = partial.files.length;
       }
     }
+  } catch (error) {
+    console.error("EditCode failed:", error);
+    res.write(`data: ${JSON.stringify({ error: String(error) })}\n\n`);
   }
   res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
   res.end();
